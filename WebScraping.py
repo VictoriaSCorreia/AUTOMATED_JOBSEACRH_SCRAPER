@@ -1,80 +1,131 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
 import time
 from datetime import datetime
 
-# Define um user-agent customizado para evitar ser bloqueado por sistemas de anti-bot
-user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
-
-# Inicializa as opções do Chrome
-options = webdriver.ChromeOptions()
-options.add_argument(f"user-agent={user_agent}")
-options.add_argument("--window-size=1920,1080")
-# options.add_argument("--headless")  # Se descomentado, roda o navegador em modo headless (sem interface gráfica), mas pode contribuir para um bloqueio
-options.add_argument("--disable-gpu")  # Desabilita o uso de GPU, útil quando em modo headless
-
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
-# URL da página acessada
-url = "https://portal.gupy.io/job-search/term=desenvolvedor%20junior"
-driver.get(url)
-
-dic_vagas = {"titulo": [], "data": [], "link": []}
-
-# Define a partir de que data a vaga deve ser armazenada
-data_limite = datetime(2025, 1, 1) 
-
-# Configuração de rolagem de uma página com carregamento infinito
-# Altura inicial para controlar o momento em que chegou ao final da rolagem
-last_height = driver.execute_script("return document.body.scrollHeight")
-
-# Laço para carregar todas as vagas
-while True:
-    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")  # Rola até o final da página
-    time.sleep(3)  # Espera 5s para novos vagas carregarem
+def scrape_vagas(url, seletores, data_limite):
+    # Inicializa o navegador
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
+    options = webdriver.ChromeOptions()
+    options.add_argument(f"user-agent={user_agent}")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-gpu")
     
-    # Verifica a altura da página novamente após a rolagem
-    new_height = driver.execute_script("return document.body.scrollHeight")
-    if new_height == last_height:  # Se a altura não mudou, significa que a página chegou ao fim
-        break
-    last_height = new_height  # Atualiza a altura para a próxima verificação
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver.get(url)
 
-# Coletando os vagas após o carregamento completo
-vagas = driver.find_elements(By.CSS_SELECTOR, '[class*="kokxPe"]')
+    dic_vagas = {"titulo": [], "data": [], "link": []}
 
-for vaga in vagas:
-    try:
-        # Extraindo as informações de cada vaga
-        data_texto = vaga.find_element(By.CSS_SELECTOR, '[class*="iUzUdL"]').text.strip()
-        data = data_texto.split(": ")[-1]
-        # Vagas apenas após a data estipulada
-        data_vaga = datetime.strptime(data, "%d/%m/%Y")  
-        if data_vaga > data_limite:
-            titulo = vaga.find_element(By.CSS_SELECTOR, '[class*="dZRYPZ"]').text.strip()
-            link_element = vaga.find_element(By.CSS_SELECTOR, '[class*="IKqnq"]')
-            link = link_element.get_attribute("href") if link_element else "Sem link"
+    last_height = driver.execute_script("return document.body.scrollHeight")
 
-            print(titulo, data, link)
+    # Configuração de rolagem para carregamento infinito
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(5)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
 
-            # Adiciona as informações ao dicionário
-            dic_vagas["titulo"].append(titulo)
-            dic_vagas["data"].append(data)
-            dic_vagas["link"].append(link)
-    except Exception as e:
-            print(f"Erro ao processar vaga: {e}")  
-            continue
+    """ time.sleep(5) """
+    # Coletando as vagas
+    vagas = driver.find_elements(By.CSS_SELECTOR, seletores['vaga'])
 
-# Fechando o navegador
-driver.quit()
+    for vaga in vagas:
+        try:
+            data_texto = vaga.find_element(By.CSS_SELECTOR, seletores['data']).get_attribute("textContent").strip()
+            data = data_texto.split(": ")[-1]
+            try:
+                # Tenta converter data no formato "dd/mm/yyyy"
+                data_vaga = datetime.strptime(data, "%d/%m/%Y").date()
+            except ValueError:
+                data_vaga = converter_data(data_texto)
+
+            if data_vaga > data_limite:
+                titulo = vaga.find_element(By.CSS_SELECTOR, seletores['titulo']).get_attribute("textContent").strip()
+                link_element = vaga.find_element(By.CSS_SELECTOR, seletores['link'])
+                link = link_element.get_attribute("href") or link_element.get_attribute("data-href") or "Sem link"
+                
+                print(titulo, data_vaga, link)
+
+                dic_vagas["titulo"].append(titulo)
+                dic_vagas["data"].append(data_vaga.strftime("%d/%m/%Y"))  # Padroniza a saída
+                dic_vagas["link"].append(link)
+        except Exception as e:
+            print(f"Erro ao processar vaga: {e}")
+            continue 
+
+    driver.quit()
+    return dic_vagas
+
+def converter_data(data_str):
+    partes = data_str.split()
+    if len(partes) < 2:
+        raise ValueError(f"Formato de data inesperado: {data_str}")
+
+    dia, mes_abrev = partes[0], partes[1].lower()
+    mes = meses_pt.get(mes_abrev)
+
+    if not mes:
+        raise ValueError(f"Mês não reconhecido: {mes_abrev}")
+
+    # Se o mês for maior que o mês atual, assume que a vaga foi postada no ano passado [melhorar]
+    ano_atual = datetime.now().year
+    if int(mes) > datetime.now().month:
+        ano_atual -= 1
+
+    data_formatada = f"{dia}/{mes}/{ano_atual}"
+    return datetime.strptime(data_formatada, "%d/%m/%Y").date()
+
+meses_pt = {
+    "jan": "01", "fev": "02", "mar": "03", "abr": "04",
+    "mai": "05", "jun": "06", "jul": "07", "ago": "08",
+    "set": "09", "out": "10", "nov": "11", "dez": "12"
+}
+
+# Lista de domínios e suas configurações de scraping
+dominios = [
+    {
+        "url": "https://portal.gupy.io/job-search/term=desenvolvedor%20junior&workplaceTypes[]=remote",
+        "seletores": {
+            "vaga": '[class*="kokxPe"]',
+            "titulo": '[class*="dZRYPZ"]',
+            "data": '[class*="iUzUdL"]',
+            "link": '[class*="IKqnq"]'
+        }
+    },
+    {
+        "url": "https://www.infojobs.com.br/vagas-de-emprego-desenvolvedor+junior-trabalho-home-office.aspx",
+        "seletores": {
+            "vaga": '[class*="js_rowCard"]',
+            "titulo": '[class*="h3 font-weight-bold text-body mb-8"]',
+            "data": '[class*="text-medium small"]',
+            "link": '[class*="py-16 pl-24 pr-16 cursor-pointer js_vacancyLoad js_cardLink"]'
+        }
+    }
+]
+
+# Define a partir de que data as vagas devem ser armazenadas
+data_limite = datetime(2025, 1, 1).date()
+
+# Dicionário para armazenar as vagas de todos os domínios
+all_vagas = {"titulo": [], "data": [], "link": []}
+
+# Scraping para cada domínio
+for dominio in dominios:
+    print(f"Iniciando scraping para: {dominio['url']}")
+    vagas_dominio = scrape_vagas(dominio['url'], dominio['seletores'], data_limite)
+    
+    # Adiciona as vagas coletadas ao dicionário geral
+    all_vagas["titulo"].extend(vagas_dominio["titulo"])
+    all_vagas["data"].extend(vagas_dominio["data"])
+    all_vagas["link"].extend(vagas_dominio["link"])
 
 # Salvando os dados em CSV
-df = pd.DataFrame(dic_vagas)
-df.to_csv("vagas_gupy.csv", encoding="utf-8", sep=";", index=False)
+df = pd.DataFrame(all_vagas)
+df.to_csv("vagas_coletadas.csv", encoding="utf-8", sep=";", index=False)
 
 print("Scraping concluído e arquivo salvo com sucesso! ✅")

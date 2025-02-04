@@ -1,131 +1,163 @@
+import logging
+import time
+import pandas as pd
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-import pandas as pd
-import time
-from datetime import datetime
 
-def scrape_vagas(url, seletores, data_limite):
-    # Inicializa o navegador
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
-    options = webdriver.ChromeOptions()
-    options.add_argument(f"user-agent={user_agent}")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-gpu")
-    
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    driver.get(url)
+logging.basicConfig(filename='scraper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    dic_vagas = {"titulo": [], "data": [], "link": []}
+class JobScraper:
+    def __init__(self, url, selectors, limit_date):
+        """
+        Class responsible for performing job scraping.
 
-    last_height = driver.execute_script("return document.body.scrollHeight")
+        Parameters:
+        - url (str): URL of the job page
+        - selectors (dict): Dictionary containing the CSS selectors for the page elements
+        - limit_date (datetime.date): The limit date for considering the jobs
+        """
+        self.url = url
+        self.selectors = selectors 
+        self.limit_date = limit_date  
+        self.driver = self._setup_driver()
 
-    # Configuração de rolagem para carregamento infinito
-    while True:
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(5)
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
-            break
-        last_height = new_height
+    def _setup_driver(self):
+        """Chrome driver config to execute Selenium"""
+        options = webdriver.ChromeOptions()
+        # options.add_argument("--headless")  # Executa sem abrir o navegador
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox") # Linux config
+        options.add_argument("--disable-dev-shm-usage") # Linux config
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36")
+        
+        return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-    """ time.sleep(5) """
-    # Coletando as vagas
-    vagas = driver.find_elements(By.CSS_SELECTOR, seletores['vaga'])
+    def _scroll_page(self):
+        """Scrolling the whole page to load the data (jobs)"""
+        last_height = self.driver.execute_script("return document.body.scrollHeight")
+        while True:
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2) # It has to be improved
+            new_height = self.driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
 
-    for vaga in vagas:
+    def _convert_date(self, date_str):
+        """
+        Converts a date in textual format to a datetime.date object.
+
+        Parameter:
+        - date_str (str): Date extracted from the page in textual format.
+
+        Return:
+        - datetime.date: Date formatted in the dd/mm/yyyy format.
+        """
+        months_pt = {
+            "jan": "01", "fev": "02", "mar": "03", "abr": "04",
+            "mai": "05", "jun": "06", "jul": "07", "ago": "08",
+            "set": "09", "out": "10", "nov": "11", "dez": "12"
+        }
+        parts = date_str.split()
+        if len(parts) < 2:
+            raise ValueError(f"Formato de data inesperado: {date_str}")
+
+        day, month_abbr = parts[0], parts[1].lower()
+        month = months_pt.get(month_abbr)
+        if not month:
+            raise ValueError(f"Mês não reconhecido: {month_abbr}")
+
+        # If the month is greater than the current month, it assumes that the job was posted last year [improvement needed].
+        current_year = datetime.now().year
+        if int(month) > datetime.now().month:
+            current_year -= 1
+
+        formatted_date = f"{day}/{month}/{current_year}"
+        return datetime.strptime(formatted_date, "%d/%m/%Y").date()
+
+    def scrape(self):
+        """
+        Performs the scraping of the page and returns a dictionary with the collected data.
+
+        Return:
+        - dict: Dictionary containing the titles, dates, and links of the jobs.
+        """
+        logging.info(f"Iniciando scraping: {self.url}")
+        self.driver.get(self.url)
+        self._scroll_page()
+
+        job_dict = {"title": [], "date": [], "link": []}
         try:
-            data_texto = vaga.find_element(By.CSS_SELECTOR, seletores['data']).get_attribute("textContent").strip()
-            data = data_texto.split(": ")[-1]
-            try:
-                # Tenta converter data no formato "dd/mm/yyyy"
-                data_vaga = datetime.strptime(data, "%d/%m/%Y").date()
-            except ValueError:
-                data_vaga = converter_data(data_texto)
-
-            if data_vaga > data_limite:
-                titulo = vaga.find_element(By.CSS_SELECTOR, seletores['titulo']).get_attribute("textContent").strip()
-                link_element = vaga.find_element(By.CSS_SELECTOR, seletores['link'])
-                link = link_element.get_attribute("href") or link_element.get_attribute("data-href") or "Sem link"
-                
-                print(titulo, data_vaga, link)
-
-                dic_vagas["titulo"].append(titulo)
-                dic_vagas["data"].append(data_vaga.strftime("%d/%m/%Y"))  # Padroniza a saída
-                dic_vagas["link"].append(link)
+            jobs = self.driver.find_elements(By.CSS_SELECTOR, self.selectors["job"])
         except Exception as e:
-            print(f"Erro ao processar vaga: {e}")
-            continue 
+            logging.error(f"Erro ao encontrar vagas em {self.url}: {e}")
+            return job_dict
 
-    driver.quit()
-    return dic_vagas
+        for job in jobs:
+            try:
+                text_date = job.find_element(By.CSS_SELECTOR, self.selectors['date']).get_attribute("textContent").strip() 
+                date = text_date.split(": ")[-1]
+                try:
+                    job_date = datetime.strptime(date, "%d/%m/%Y").date()
+                except ValueError:
+                    # For infojobs date format
+                    job_date = self._convert_date(text_date)
+                
+                if job_date >= self.limit_date:
+                    title = job.find_element(By.CSS_SELECTOR, self.selectors['title']).get_attribute("textContent").strip()
+                    element_link = job.find_element(By.CSS_SELECTOR, self.selectors['link'])
+                    link = element_link.get_attribute("href") or f"https://www.infojobs.com.br/{element_link.get_attribute('data-href')}" or "Sem link"
 
-def converter_data(data_str):
-    partes = data_str.split()
-    if len(partes) < 2:
-        raise ValueError(f"Formato de data inesperado: {data_str}")
+                    print(title, job_date, link)
 
-    dia, mes_abrev = partes[0], partes[1].lower()
-    mes = meses_pt.get(mes_abrev)
+                    job_dict["title"].append(title)
+                    job_dict["date"].append(job_date.strftime("%d/%m/%Y"))
+                    job_dict["link"].append(link)
+            except Exception as e:
+                continue 
+        return job_dict
 
-    if not mes:
-        raise ValueError(f"Mês não reconhecido: {mes_abrev}")
-
-    # Se o mês for maior que o mês atual, assume que a vaga foi postada no ano passado [melhorar]
-    ano_atual = datetime.now().year
-    if int(mes) > datetime.now().month:
-        ano_atual -= 1
-
-    data_formatada = f"{dia}/{mes}/{ano_atual}"
-    return datetime.strptime(data_formatada, "%d/%m/%Y").date()
-
-meses_pt = {
-    "jan": "01", "fev": "02", "mar": "03", "abr": "04",
-    "mai": "05", "jun": "06", "jul": "07", "ago": "08",
-    "set": "09", "out": "10", "nov": "11", "dez": "12"
-}
-
-# Lista de domínios e suas configurações de scraping
-dominios = [
+# Pages
+domains = [
     {
-        "url": "https://portal.gupy.io/job-search/term=desenvolvedor%20junior&workplaceTypes[]=remote",
-        "seletores": {
-            "vaga": '[class*="kokxPe"]',
-            "titulo": '[class*="dZRYPZ"]',
-            "data": '[class*="iUzUdL"]',
+        "url": "https://portal.gupy.io/job-search/term=desenvolvedor&workplaceTypes[]=remote",
+        "selectors": {
+            "job": '[class*="kokxPe"]',
+            "title": '[class*="dZRYPZ"]',
+            "date": '[class*="iUzUdL"]',
             "link": '[class*="IKqnq"]'
         }
     },
     {
         "url": "https://www.infojobs.com.br/vagas-de-emprego-desenvolvedor+junior-trabalho-home-office.aspx",
-        "seletores": {
-            "vaga": '[class*="js_rowCard"]',
-            "titulo": '[class*="h3 font-weight-bold text-body mb-8"]',
-            "data": '[class*="text-medium small"]',
+        "selectors": {
+            "job": '[class*="js_rowCard"]',
+            "title": '[class*="h3 font-weight-bold text-body mb-8"]',
+            "date": '[class*="text-medium small"]',
             "link": '[class*="py-16 pl-24 pr-16 cursor-pointer js_vacancyLoad js_cardLink"]'
         }
     }
 ]
 
-# Define a partir de que data as vagas devem ser armazenadas
-data_limite = datetime(2025, 1, 1).date()
+limit_date = datetime(2025, 1, 1).date()
+all_jobs = {"title": [], "date": [], "link": []}
 
-# Dicionário para armazenar as vagas de todos os domínios
-all_vagas = {"titulo": [], "data": [], "link": []}
+for domain in domains:
+    scraper = JobScraper(domain['url'], domain['selectors'], limit_date)
+    try:
+        jobs_per_domain = scraper.scrape()
+        all_jobs["title"].extend(jobs_per_domain["title"])
+        all_jobs["date"].extend(jobs_per_domain["date"])
+        all_jobs["link"].extend(jobs_per_domain["link"])
+    finally:
+        scraper.driver.quit()
 
-# Scraping para cada domínio
-for dominio in dominios:
-    print(f"Iniciando scraping para: {dominio['url']}")
-    vagas_dominio = scrape_vagas(dominio['url'], dominio['seletores'], data_limite)
-    
-    # Adiciona as vagas coletadas ao dicionário geral
-    all_vagas["titulo"].extend(vagas_dominio["titulo"])
-    all_vagas["data"].extend(vagas_dominio["data"])
-    all_vagas["link"].extend(vagas_dominio["link"])
-
-# Salvando os dados em CSV
-df = pd.DataFrame(all_vagas)
+# Saving in csv
+df = pd.DataFrame(all_jobs)
 df.to_csv("vagas_coletadas.csv", encoding="utf-8", sep=";", index=False)
-
-print("Scraping concluído e arquivo salvo com sucesso! ✅")
+logging.info("Scraping concluído e arquivo salvo com sucesso! ✅")

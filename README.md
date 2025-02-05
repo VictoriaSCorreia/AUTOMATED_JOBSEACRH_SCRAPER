@@ -1,4 +1,4 @@
-By VictoriaSCorreia
+© **VictoriaSCorreia**
 
 # 🔎 JobScraper – Automated Job Search Scraper  
 

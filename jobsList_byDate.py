@@ -28,10 +28,9 @@ domains = [
 logging.basicConfig(filename='scraper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 limit_date = datetime(2025, 1, 1).date()
 all_jobs = {"title": [], "date": [], "link": []}
-filter = "job list by limit date"
 
 for domain in domains:
-    scraper = JobScraper(domain['url'], domain['selectors'], filter, limit_date)
+    scraper = JobScraper(domain['url'], domain['selectors'], limit_date)
     try:
         jobs_per_domain = scraper.scrape()
         all_jobs["title"].extend(jobs_per_domain["title"])

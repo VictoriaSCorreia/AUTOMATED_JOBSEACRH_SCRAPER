@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import logging
+import os
 import pandas as pd
 from JobScraper import JobScraper
 
@@ -28,10 +29,9 @@ domains = [
 logging.basicConfig(filename='scraper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 yesterday = datetime.now().date() - timedelta(days=1)
 all_jobs = {"title": [], "date": [], "link": []}
-filter = "job alert"
 
 for domain in domains:
-    scraper = JobScraper(domain['url'], domain['selectors'], filter, yesterday)
+    scraper = JobScraper(domain['url'], domain['selectors'], yesterday)
     try:
         jobs_per_domain = scraper.scrape()
         all_jobs["title"].extend(jobs_per_domain["title"])
@@ -41,6 +41,10 @@ for domain in domains:
         scraper.driver.quit()
 
 # Saving in csv
+arquivo = "vagas_novas.csv"
+if os.path.exists(arquivo):
+    os.remove(arquivo)
+    
 df = pd.DataFrame(all_jobs)
-df.to_csv("vagas_coletadas.csv", encoding="utf-8", sep=";", index=False)
+df.to_csv("vagas_novas.csv", encoding="utf-8", sep=";", index=False)
 logging.info("Scraping concluído e arquivo salvo com sucesso! ✅")

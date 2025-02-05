@@ -1,34 +1,28 @@
 import logging
 import time
-import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
 class JobScraper:
-    def __init__(self, url, selectors, filter, dateRegulator):
+    def __init__(self, url, selectors, dateRegulator):
         """
-        Class responsible for performing job scraping.
-
         Parameters:
         - url (str): URL of the job page
         - selectors (dict): Dictionary containing the CSS selectors for the page elements
-        - limit_date (datetime.date): The limit date for considering the jobs
+        - dateRegulator (datetime.date): The kind of regulator (limit_date or yesterday)
         """
         self.url = url
         self.selectors = selectors 
-        self.filter = filter
         self.dateRegulator = dateRegulator
         self.driver = self._setup_driver()
 
     def _setup_driver(self):
         # Chrome driver config to execute Selenium
-
         options = webdriver.ChromeOptions()
-        # options.add_argument("--headless")  # Execute without open the Chrome
+        # options.add_argument("--headless")  # Execute without opening Chrome
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox") # Linux config
@@ -39,7 +33,6 @@ class JobScraper:
 
     def _scroll_page(self):
         # Scrolling the whole page to load the data (jobs)
-
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -52,12 +45,10 @@ class JobScraper:
     def _convert_date(self, date_str):
         """
         Converts a date in textual format to a datetime.date object.
-
         Parameter:
         - date_str (str): Date extracted from the page in textual format.
-
         Return:
-        - datetime.date: Date formatted in the dd/mm/yyyy format.
+        - datetime.date: Date formatted in the dd-mm-yyyy format.
         """
         months_pt = {
             "jan": "01", "fev": "02", "mar": "03", "abr": "04",
@@ -84,7 +75,6 @@ class JobScraper:
     def scrape(self):
         """
         Performs the scraping of the page and returns a dictionary with the collected data.
-
         Return:
         - dict: Dictionary containing the titles, dates, and links of the jobs.
         """
@@ -111,19 +101,14 @@ class JobScraper:
                         job_date = text_date
                     else:
                         job_date = self._convert_date(text_date)
-                if self.filter.lower() == "job list by limit date":
-                    if job_date != "Hoje" and job_date != "Ontem" and job_date < self.dateRegulator:
-                        continue
 
                 element_link = job.find_element(By.CSS_SELECTOR, self.selectors['link'])
                 link = element_link.get_attribute("href") or f"https://www.infojobs.com.br/{element_link.get_attribute('data-href')}" or "Sem link"
                 
-                if self.filter.lower() == "job alert":
-                    if job_date != "Hoje" and job_date != "Ontem" and job_date < self.dateRegulator:
-                        continue
+                if job_date != "Hoje" and job_date != "Ontem" and job_date < self.dateRegulator:
+                    continue
 
                 title = job.find_element(By.CSS_SELECTOR, self.selectors['title']).get_attribute("textContent").strip()
-
                 print(title, job_date, link)
 
                 job_dict["title"].append(title)
@@ -132,3 +117,4 @@ class JobScraper:
             except Exception as e:
                 continue 
         return job_dict
+        

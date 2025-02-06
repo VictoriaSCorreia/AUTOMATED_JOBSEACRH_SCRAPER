@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta
-
+from JobScraper import JobScraper
+from datetime import datetime
 import logging
 import pandas as pd
-from JobScraper import JobScraper
 
 domains = [
    {
@@ -25,12 +24,14 @@ domains = [
     }
 ]
 
-logging.basicConfig(filename='scraper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Choose a limit day
 limit_date = datetime(2025, 1, 1).date()
+# Constant variable
+dateRegulatorType = 'jobs list'
 all_jobs = {"title": [], "date": [], "link": []}
 
 for domain in domains:
-    scraper = JobScraper(domain['url'], domain['selectors'], limit_date)
+    scraper = JobScraper(domain['url'], domain['selectors'], limit_date, dateRegulatorType)
     try:
         jobs_per_domain = scraper.scrape()
         all_jobs["title"].extend(jobs_per_domain["title"])

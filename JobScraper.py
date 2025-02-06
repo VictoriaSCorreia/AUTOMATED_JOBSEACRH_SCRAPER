@@ -1,13 +1,13 @@
-import logging
-import time
-from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+import logging
+import time
+from datetime import datetime
 
 class JobScraper:
-    def __init__(self, url, selectors, dateRegulator):
+    def __init__(self, url, selectors, dateRegulator, dateRegulatorType):
         """
         Parameters:
         - url (str): URL of the job page
@@ -17,6 +17,7 @@ class JobScraper:
         self.url = url
         self.selectors = selectors 
         self.dateRegulator = dateRegulator
+        self.dateRegulatorType = dateRegulatorType
         self.driver = self._setup_driver()
 
     def _setup_driver(self):
@@ -105,11 +106,16 @@ class JobScraper:
                 element_link = job.find_element(By.CSS_SELECTOR, self.selectors['link'])
                 link = element_link.get_attribute("href") or f"https://www.infojobs.com.br/{element_link.get_attribute('data-href')}" or "Sem link"
                 
-                if job_date != "Hoje" and job_date != "Ontem" and job_date < self.dateRegulator:
-                    continue
-
+                if self.dateRegulatorType == 'jobs list':
+                    if job_date != "Hoje" and job_date != "Ontem" and job_date < self.dateRegulator:
+                        continue
+                elif self.dateRegulatorType == 'alert':
+                    if job_date != "Ontem" and job_date != self.dateRegulator:
+                        continue
+                else:
+                    raise Exception()
+                
                 title = job.find_element(By.CSS_SELECTOR, self.selectors['title']).get_attribute("textContent").strip()
-                print(title, job_date, link)
 
                 job_dict["title"].append(title)
                 job_dict["date"].append(job_date)

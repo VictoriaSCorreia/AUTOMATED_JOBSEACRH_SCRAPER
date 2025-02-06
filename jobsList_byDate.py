@@ -4,8 +4,8 @@ import logging
 import pandas as pd
 
 domains = [
-   {
-        "url": "https://portal.gupy.io/job-search/term=desenvolvedor%20jr",
+    {
+        "url": "https://portal.gupy.io/job-search/term=desenvolvedor%20python",
         "selectors": {
             "job": '[class*="kokxPe"]',
             "title": '[class*="dZRYPZ"]',
@@ -25,7 +25,15 @@ domains = [
 ]
 
 # Choose a limit day
-limit_date = datetime(2025, 1, 1).date()
+while True:
+    try:
+        limit_date = input("A partir de qual data devem ser as vagas? (formato: ano-mês-dia): ")
+        limit_date = datetime.strptime(limit_date, "%Y-%m-%d").date()
+        break
+    except ValueError:
+        print("Data inválida. Tente novamente.")
+
+# limit_date = datetime(2025, 1, 1).date()
 # Constant variable
 dateRegulatorType = 'jobs list'
 all_jobs = {"title": [], "date": [], "link": []}

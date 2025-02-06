@@ -5,8 +5,8 @@ import os
 import time
 
 domains = [
-   {
-        "url": "https://portal.gupy.io/job-search/term=desenvolvedor&workplaceTypes[]=remote",
+    {
+        "url": "https://portal.gupy.io/job-search/term=desenvolvedor%20python",
         "selectors": {
             "job": '[class*="kokxPe"]',
             "title": '[class*="dZRYPZ"]',
@@ -49,7 +49,7 @@ def createMessage(jobs):
     return message
 
 def loadWhatsApp():
-    """ Wait the WhatsApp full loading by a inferface element verify """
+    """ Wait for the full loading of WhatsApp by verifying an interface element. """
     while True:
         try:
             if pyautogui.locateOnScreen('campo_pesquisa.png', confidence=0.8):
@@ -98,6 +98,7 @@ dateRegulatorType = 'alert'
 
 jobs = scraperJobsDict(yesterday, dateRegulatorType)
 message = createMessage(jobs)
+
 recipient = "" # * contact or group to send the messages
 
 findContact(recipient)

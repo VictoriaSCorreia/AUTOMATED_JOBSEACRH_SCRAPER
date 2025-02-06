@@ -37,7 +37,7 @@ class JobScraper:
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(3) # It has to be improved
+            time.sleep(5) # It has to be improved
             new_height = self.driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:
                 break

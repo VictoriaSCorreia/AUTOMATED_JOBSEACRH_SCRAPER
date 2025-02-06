@@ -37,7 +37,7 @@ class JobScraper:
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         while True:
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(5) # It has to be improved
+            time.sleep(5) # * It has to be improved
             new_height = self.driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:
                 break
@@ -105,7 +105,6 @@ class JobScraper:
 
                 element_link = job.find_element(By.CSS_SELECTOR, self.selectors['link'])
                 link = element_link.get_attribute("href") or f"https://www.infojobs.com.br/{element_link.get_attribute('data-href')}" or "Sem link"
-                
                 if self.dateRegulatorType == 'jobs list':
                     if job_date != "Hoje" and job_date != "Ontem" and job_date < self.dateRegulator:
                         continue

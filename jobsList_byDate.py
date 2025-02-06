@@ -5,16 +5,7 @@ import pandas as pd
 
 domains = [
     {
-        "url": "https://portal.gupy.io/job-search/term=desenvolvedor%20python",
-        "selectors": {
-            "job": '[class*="kokxPe"]',
-            "title": '[class*="dZRYPZ"]',
-            "date": '[class*="iUzUdL"]',
-            "link": '[class*="IKqnq"]'
-        }
-    },
-    {
-        "url": "https://www.infojobs.com.br/empregos.aspx?palabra=desenvolvedor+jr",
+        "url": "https://www.infojobs.com.br/empregos.aspx?palabra=desenvolvedor+java",
         "selectors": {
         "job": '[class*="js_rowCard"]',
         "title": '[class*="h3 font-weight-bold text-body mb-8"]',

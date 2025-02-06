@@ -6,21 +6,21 @@ import time
 
 domains = [
     {
-        "url": "https://portal.gupy.io/job-search/term=desenvolvedor%20python",
-        "selectors": {
-            "job": '[class*="kokxPe"]',
-            "title": '[class*="dZRYPZ"]',
-            "date": '[class*="iUzUdL"]',
-            "link": '[class*="IKqnq"]'
-        }
-    },
-    {
-        "url": "https://www.infojobs.com.br/empregos.aspx?palabra=desenvolvedor+jr",
+        "url": "https://www.infojobs.com.br/empregos.aspx?palabra=desenvolvedor+java",
         "selectors": {
         "job": '[class*="js_rowCard"]',
         "title": '[class*="h3 font-weight-bold text-body mb-8"]',
         "date": '[class*="text-medium small"]',
         "link": '[class*="py-16 pl-24 pr-16 cursor-pointer js_vacancyLoad js_cardLink"]'
+        }
+    },
+    {
+        "url": "https://portal.gupy.io/job-search/term=desenvolvedor%20java",
+        "selectors": {
+            "job": '[class*="kokxPe"]',
+            "title": '[class*="dZRYPZ"]',
+            "date": '[class*="iUzUdL"]',
+            "link": '[class*="IKqnq"]'
         }
     }
 ]
@@ -69,13 +69,13 @@ def findContact(recipient):
         print("Não foi possível abrir o app")
 
     pyautogui.hotkey('ctrl', 'f')
-    time.sleep(2)
+    time.sleep(1)
     pyautogui.write(recipient)
     time.sleep(6)
-    pyautogui.press('down') 
-    time.sleep(4)
+    pyautogui.press('tab')
+    time.sleep(1)
     pyautogui.press('enter')
-    time.sleep(4)
+    time.sleep(1)
     
 def sendMessage(message):
     jobsNum = 0
@@ -99,7 +99,7 @@ dateRegulatorType = 'alert'
 jobs = scraperJobsDict(yesterday, dateRegulatorType)
 message = createMessage(jobs)
 
-recipient = "" # * contact or group to send the messages
+recipient = ""  # * contact or group to send the messages
 
 findContact(recipient)
 sendMessage(message)

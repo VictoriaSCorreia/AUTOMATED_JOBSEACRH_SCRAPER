@@ -42,7 +42,7 @@ The `requirements.txt` file includes all necessary dependencies:
 
 ### 2️⃣ Log in to WhatsApp Desktop and:
 
-## 🌐 Browser Requirements
+#### 🌐 Browser Requirements
 To run JobScraper, **Google Chrome must be installed** as it uses ChromeDriver for Selenium. If you prefer, you can switch to Firefox by using GeckoDriver or any other browser driver.
 
 Headless mode is supported by uncommenting the options.add_argument("--headless") line.

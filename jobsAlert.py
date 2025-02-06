@@ -48,23 +48,34 @@ def createMessage(jobs):
             message += f"{jobs['title'][i]} ({jobs['date'][i]})\n> {jobs['link'][i]}\n\n"
     return message
 
+def loadWhatsApp():
+    """ Wait the WhatsApp full loading by a inferface element verify """
+    while True:
+        try:
+            if pyautogui.locateOnScreen('campo_pesquisa.png', confidence=0.8):
+                print("WhatsApp carregado!")
+                break
+        except:
+            pass
+        time.sleep(1)
+
 # Must be logged in on WhatsApp Desktop
 def findContact(recipient):
     try:
         cmd = 'start shell:AppsFolder\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App'
         os.system(cmd)
-        time.sleep(7)
+        loadWhatsApp()  # Wait until WhatsApp is fully loaded
     except:
         print("Não foi possível abrir o app")
 
-    pyautogui.hotkey('ctrl', 'f')  # Opens search bar
-    time.sleep(1)
+    pyautogui.hotkey('ctrl', 'f')
+    time.sleep(2)
     pyautogui.write(recipient)
-    time.sleep(5)
-    pyautogui.press('down') # Goes to the first contact
-    time.sleep(5)
+    time.sleep(6)
+    pyautogui.press('down') 
+    time.sleep(4)
     pyautogui.press('enter')
-    time.sleep(1)
+    time.sleep(4)
     
 def sendMessage(message):
     jobsNum = 0

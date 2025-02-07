@@ -1,0 +1,4 @@
+pandas==2.2.3
+PyAutoGUI==0.9.54
+selenium==4.28.1
+webdriver-manager==4.0.2

@@ -1,5 +1,7 @@
 © **VictoriaSCorreia**
 
+❗ Under code maintenance
+
 # 🔎 JobScraper – Automated Job Search and Alert Scraper  
 
 JobScraper is a Python-based scraper using Selenium to automatically search and collect job opportunities from platforms like **InfoJobs** and **Gupy**. The goal is to simplify job searching by:  

@@ -40,7 +40,7 @@ The `requirements.txt` file includes all necessary dependencies:
 - Selenium  
 - WebDriver Manager  
 - Pandas  
-- PyAutoGUI  
+- Python Telegram Bot
 
 ### 2️⃣ Log in to WhatsApp Desktop and:
 

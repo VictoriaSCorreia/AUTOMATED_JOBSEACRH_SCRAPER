@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 
 class JobScraper:
-    def __init__(self, url, selectors, dateRegulator, dateRegulatorType):
+    def __init__(self, url, selectors, dateRegulator, DATE_REGULATOR_TYPE):
         """
         Parameters:
         - url (str): URL of the job page
@@ -17,7 +17,7 @@ class JobScraper:
         self.url = url
         self.selectors = selectors 
         self.dateRegulator = dateRegulator
-        self.dateRegulatorType = dateRegulatorType
+        self.DATE_REGULATOR_TYPE = DATE_REGULATOR_TYPE
         self.driver = self._setup_driver()
 
     def _setup_driver(self):
@@ -85,14 +85,14 @@ class JobScraper:
 
         job_dict = {"title": [], "date": [], "link": []}
         try:
-            jobs = self.driver.find_elements(By.CSS_SELECTOR, self.selectors["job"])
+            jobs = self.driver.find_elements(By.XPATH, self.selectors["job"])
         except Exception as e:
             logging.error(f"Erro ao encontrar vagas em {self.url}: {e}")
             return job_dict
 
         for job in jobs:
             try:
-                text_date = job.find_element(By.CSS_SELECTOR, self.selectors['date']).get_attribute("textContent").strip() 
+                text_date = job.find_element(By.XPATH, self.selectors['date']).get_attribute("textContent").strip() 
                 date = text_date.split(": ")[-1]
                 try:
                     job_date = datetime.strptime(date, "%d/%m/%Y").date()
@@ -103,19 +103,18 @@ class JobScraper:
                     else:
                         job_date = self._convert_date(text_date)
 
-                element_link = job.find_element(By.CSS_SELECTOR, self.selectors['link'])
+                element_link = job.find_element(By.XPATH, self.selectors['link'])
                 link = element_link.get_attribute("href") or f"https://www.infojobs.com.br/{element_link.get_attribute('data-href')}" or "Sem link"
-                if self.dateRegulatorType == 'jobs list':
+                if self.DATE_REGULATOR_TYPE == 'jobs list':
                     if job_date != "Hoje" and job_date != "Ontem" and job_date < self.dateRegulator:
                         continue
-                elif self.dateRegulatorType == 'alert':
+                elif self.DATE_REGULATOR_TYPE == 'alert':
                     if job_date != "Ontem" and job_date != self.dateRegulator:
                         continue
                 else:
                     raise Exception()
                 
-                title = job.find_element(By.CSS_SELECTOR, self.selectors['title']).get_attribute("textContent").strip()
-
+                title = job.find_element(By.XPATH, self.selectors['title']).get_attribute("textContent").strip()
                 job_dict["title"].append(title)
                 job_dict["date"].append(job_date)
                 job_dict["link"].append(link)

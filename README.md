@@ -7,7 +7,7 @@
 JobScraper is a Python-based scraper using Selenium to automatically search and collect job opportunities from platforms like **InfoJobs** and **Gupy**. The goal is to simplify job searching by:  
 
 - **Organizing the collected data into a CSV file for further analysis**  
-- **Sending the recent job opportunities directly via WhatsApp**  
+- **Sending the recent job opportunities directly via Telegram**  
 
 ## 🚀 Features  
 
@@ -25,7 +25,7 @@ JobScraper is a Python-based scraper using Selenium to automatically search and 
 - Pandas  
 - WebDriver Manager  
 - Logging  
-- PyAutoGUI  
+- Telegram Bot 
 
 ## ⚙️ How to Use  
 
@@ -42,15 +42,15 @@ The `requirements.txt` file includes all necessary dependencies:
 - Pandas  
 - Python Telegram Bot
 
-### 2️⃣ Log in to WhatsApp Desktop and:
-
 #### 🌐 Browser Requirements
 To run JobScraper, **Google Chrome must be installed** as it uses ChromeDriver for Selenium. If you prefer, you can switch to Firefox by using GeckoDriver or any other browser driver.
 
 Headless mode is supported by uncommenting the options.add_argument("--headless") line.
 
+### 2️⃣ 
+
 ### 3️⃣ Configure the recipient  
-Modify the **recipient** variable in the `jobsAlert.py` file to specify the contact or group where job alerts should be sent.  
+Modify the **RECIPIENT_ID** variable in the `jobsAlert.py` file to specify the contact or group where job alerts should be sent.  
 
 ### 4️⃣ Run the scripts  
 
@@ -60,7 +60,9 @@ python jobsList_byDate.py
 ```
 
 ### 🖥️ Adding New Job Sites  
-You can add new job sites by modifying the domains list in the code. Simply define the URL and the correct CSS selectors for the job elements (title, date, and link). You can also modify the keys in the domains to search for specific job positions. Note that if the site uses pagination, there is no handling for it—you would need to manually handle pagination if required.
+
+You can add new job positions by modifying the "job_types" variable. 
+You can add new job sites by modifying the domains list in the code. Simply define the URL and the correct CSS selectors for the job elements (title, date, and link). Note that if the site uses pagination, there is no handling for it—you would need to manually handle pagination if required.
 
 ### 🚨 Manual Usage and Task Scheduling
 When using jobsAlert, there is the option to run the software manually through the terminal. However, it was designed to be integrated with a task scheduler. The "script" file is what should be referenced when creating the scheduled task action, change it based on what is written
